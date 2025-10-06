@@ -1,0 +1,54 @@
+.upload-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(1200px 600px at 10% -10%, #e9f0ff 0%, transparent 60%),
+              radial-gradient(1200px 600px at 110% 110%, #fff0f5 0%, transparent 60%),
+              linear-gradient(180deg, #ffffff 0%, #f7f7fb 100%);
+  padding: 16px;
+}
+
+.upload-card {
+  width: 100%;
+  max-width: 560px;
+  background: #ffffffcc;
+  backdrop-filter: blur(6px);
+  border: 1px solid #eef0f3;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 10px 25px rgba(16, 24, 40, 0.08);
+}
+
+.upload-title { margin: 0 0 6px; font-size: 24px; }
+.upload-subtitle { margin: 0 0 20px; color: #6b7280; }
+
+.dropzone {
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  background: #fafafa;
+  cursor: pointer;
+  padding: 26px;
+  margin-bottom: 14px;
+}
+
+.dropzone-inner { display: flex; align-items: center; gap: 14px; }
+.dropzone-icon { font-size: 28px; }
+.dropzone-text { color: #374151; }
+.muted { color: #6b7280; font-size: 13px; }
+
+.file-name { font-size: 14px; color: #374151; margin-bottom: 10px; }
+
+.actions { display: flex; gap: 10px; }
+.primary {
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #8b5cf6, #60a5fa);
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.35);
+}
+
+
