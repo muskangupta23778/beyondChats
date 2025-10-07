@@ -1,5 +1,7 @@
 import logo from './logo.svg';
 import Login from './components/Login';
+import UserDashboard from './components/UserDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import UploadPDF from './components/UploadPDF';
 import PdfViewer from './components/PdfViewer';
 import './App.css';
@@ -13,6 +15,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/user" element={<UserDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/uploadPDF" element={<UploadPDF />} />
         <Route path="/viewPDF" element={<PdfViewer />} />
       </Routes>

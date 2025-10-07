@@ -24,6 +24,13 @@ function PdfViewer() {
   const [grading, setGrading] = useState({ loading: false, result: null, error: null });
   const listRef = useRef(null);
 
+  const backendUrl = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -157,6 +164,7 @@ PDF_TEXT_START\n${pdfText.slice(0, 25000)}\nPDF_TEXT_END\n
 QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_END`;
 
       const jsonText = await geminiGenerate(gradingPrompt, { model: 'gemini-2.0-flash' });
+      console.log("jsonText", jsonText);
       let parsed;
       try {
         parsed = JSON.parse(jsonText);
@@ -166,6 +174,34 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
         parsed = JSON.parse(jsonText.slice(start, end + 1));
       }
       setGrading({ loading: false, result: parsed, error: null });
+
+      // Compute percentage and post activity
+      try {
+        const total = Number(parsed?.overall?.total || 0);
+        const max = Number(parsed?.overall?.max || 0);
+        const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+        let email = '';
+        try {
+          const userRaw = getCookie('bc_user');
+          if (userRaw) {
+            const userObj = JSON.parse(userRaw);
+            email = userObj?.email || '';
+          }
+        } catch (_) {}
+        if (email) {
+          const token = getCookie('bc_token');
+          const headers = { 'Content-Type': 'application/json' };
+          console.log("token", token);
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          await fetch(`${backendUrl}/api/activity`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ email, result: `${pct}%` })
+          });
+        }
+      } catch (_) {
+        // ignore activity post errors for now
+      }
     } catch (err) {
       setGrading({ loading: false, result: null, error: 'Failed to grade. Please try again.' });
     }

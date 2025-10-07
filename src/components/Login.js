@@ -1,25 +1,60 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 function Login() {
+  const navigate = useNavigate();
   const [emailAddress, setEmailAddress] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState('');
   const hasEmailError = emailAddress.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress);
+
+  const backendUrl = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+  function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  }
 
   function togglePasswordVisibility() {
     setIsPasswordVisible((current) => !current);
   }
 
   async function handleSubmit(event) {
+    console.log("emailAddress", emailAddress);
+    console.log("passwordValue", passwordValue);
     event.preventDefault();
     if (!emailAddress || !passwordValue || hasEmailError) return;
     setIsSubmitting(true);
-    // Simulate a request for UX feedback
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setIsSubmitting(false);
-    // In a real app, navigate or show a toast here
+    setAuthError('');
+    try {
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailAddress, password: passwordValue })
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Login failed');
+      }
+
+      const data = await response.json();
+      if (!data || !data.token || !data.user) {
+        throw new Error('Unexpected response');
+      }
+
+      setCookie('bc_token', data.token, 2);
+      setCookie('bc_user', JSON.stringify(data.user), 2);
+      const role = String((data.user && data.user.role) || '').toLowerCase();
+      navigate(role === 'admin' ? '/admin' : '/user');
+    } catch (err) {
+      setAuthError(err.message || 'Login failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -41,6 +76,9 @@ function Login() {
             </header>
 
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
+              {authError && (
+                <div className="field-error" role="alert">{authError}</div>
+              )}
               <div className="form-field">
                 <label htmlFor="email" className="field-label">Email address</label>
                 <input
