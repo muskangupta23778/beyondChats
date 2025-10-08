@@ -135,7 +135,7 @@ export default function UserDashboard() {
           <div className="dashboard-actions">
             <button className="upload-btn" onClick={() => navigate('/uploadPDF')}>
               <span>📤</span>
-              <span>Upload New PDF</span>
+              <span>Take Test</span>
             </button>
           </div>
         </div>

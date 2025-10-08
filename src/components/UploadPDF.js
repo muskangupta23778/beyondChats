@@ -8,6 +8,7 @@ function UploadPDF() {
   const [selectedFileName, setSelectedFileName] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [lastBlob, setLastBlob] = useState(null);
 
   function handleChooseFile() {
     if (fileInputRef.current) fileInputRef.current.click();
@@ -25,7 +26,7 @@ function UploadPDF() {
     // Simulate upload delay for better UX
     setTimeout(() => {
       const blobUrl = URL.createObjectURL(file);
-      navigate('/viewPDF', { state: { pdfUrl: blobUrl, name: file.name } });
+      setLastBlob({ url: blobUrl, name: file.name });
       setIsUploading(false);
     }, 800);
   }, [navigate]);
@@ -130,20 +131,38 @@ function UploadPDF() {
           </div>
 
           <div className="upload-actions">
-            <button 
-              className={`primary-btn ${isUploading ? 'loading' : ''}`} 
-              onClick={handleChooseFile}
-              disabled={isUploading}
-            >
-              {isUploading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: lastBlob ? '1fr 1fr 1fr' : '1fr', gap: 10 }}>
+              <button 
+                className={`primary-btn ${isUploading ? 'loading' : ''}`} 
+                onClick={handleChooseFile}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <div className="btn-spinner"></div>
+                    Processing...
+                  </>
+                ) : (
+                  'Choose PDF File'
+                )}
+              </button>
+              {lastBlob && (
                 <>
-                  <div className="btn-spinner"></div>
-                  Processing...
+                  <button
+                    className="secondary-button"
+                    onClick={() => navigate('/viewPDF', { state: { pdfUrl: lastBlob.url, name: lastBlob.name } })}
+                  >
+                    Open Viewer
+                  </button>
+                  <button
+                    className="secondary-button"
+                    onClick={() => navigate('/chat', { state: { pdfUrl: lastBlob.url, name: lastBlob.name } })}
+                  >
+                    Open Chat
+                  </button>
                 </>
-              ) : (
-                'Choose PDF File'
               )}
-            </button>
+            </div>
           </div>
 
           <input
