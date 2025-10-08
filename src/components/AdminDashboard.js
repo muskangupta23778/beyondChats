@@ -43,8 +43,7 @@ export default function AdminDashboard() {
     if (!q) return activities;
     return activities.filter(a =>
       String(a.email || '').toLowerCase().includes(q) ||
-      String(a.result || '').toLowerCase().includes(q) ||
-      String(a.attempt || '').toLowerCase().includes(q)
+      String(a.name || '').toLowerCase().includes(q) 
     );
   }, [search, activities]);
 
@@ -54,15 +53,15 @@ export default function AdminDashboard() {
 
   const stats = useMemo(() => {
     const totalUsers = new Set(activities.map(a => a.email)).size;
-    const totalAttempts = activities.length;
-    const avgScore = totalAttempts > 0 
+    const totalAttempts = activities.reduce((sum, a) => sum + (Number(a.attempt) || 0), 0);
+    const avgScore = totalUsers > 0 
       ? Math.round(activities.reduce((sum, a) => {
           const percent = String(a.result).match(/\d+(?:\.\d+)?/);
           return sum + (percent ? parseFloat(percent[0]) : 0);
-        }, 0) / totalAttempts)
+        }, 0) / totalUsers)
       : 0;
     const recentActivities = activities.filter(a => {
-      const daysDiff = (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      const daysDiff = (Date.now() - new Date(a.date).getTime()) / (1000 * 60 * 60 * 24);
       return daysDiff <= 7;
     }).length;
     
@@ -71,7 +70,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard-page">
-      <Navigation onLogout={() => navigate('/login')} />
+      <Navigation onLogout={() => navigate('/')} />
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div className="dashboard-title-section">
@@ -134,7 +133,7 @@ export default function AdminDashboard() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by email, attempt, or result..."
+                placeholder="Search by name or email..."
                 className="search-input"
               />
               {search && (
@@ -217,8 +216,8 @@ export default function AdminDashboard() {
                         </td>
                         <td>
                           <div className="date-info">
-                            <div className="date">{new Date(a.createdAt).toLocaleDateString()}</div>
-                            <div className="time">{new Date(a.createdAt).toLocaleTimeString()}</div>
+                            <div className="date">{new Date(a.date).toLocaleDateString()}</div>
+                            
                           </div>
                         </td>
                         <td>

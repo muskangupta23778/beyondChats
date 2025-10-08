@@ -186,11 +186,13 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
         const max = Number(parsed?.overall?.max || 0);
         const pct = max > 0 ? Math.round((total / max) * 100) : 0;
         let email = '';
+        let name = '';
         try {
           const userRaw = getCookie('bc_user');
           if (userRaw) {
             const userObj = JSON.parse(userRaw);
             email = userObj?.email || '';
+            name = (userObj?.name || userObj?.email || '').trim();
           }
         } catch (_) {}
         if (email) {
@@ -198,10 +200,12 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
           const headers = { 'Content-Type': 'application/json' };
           console.log("token", token);
           if (token) headers['Authorization'] = `Bearer ${token}`;
+          const strengths = Array.isArray(parsed?.overall?.strengths) ? parsed.overall.strengths.slice(0, 10) : [];
+          const weaknesses = Array.isArray(parsed?.overall?.weaknesses) ? parsed.overall.weaknesses.slice(0, 10) : [];
           await fetch(`${backendUrl}/api/activity`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ email, result: `${pct}%` })
+            body: JSON.stringify({ email, name, result: `${pct}%`, strengths, weaknesses })
           });
         }
       } catch (_) {

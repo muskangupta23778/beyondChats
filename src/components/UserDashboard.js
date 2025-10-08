@@ -125,7 +125,7 @@ export default function UserDashboard() {
 
   return (
     <div className="dashboard-page">
-      <Navigation onLogout={() => navigate('/login')} />
+      <Navigation onLogout={() => navigate('/')} />
       <main className="dashboard-main">
         <div className="dashboard-header">
           <div className="dashboard-title-section">

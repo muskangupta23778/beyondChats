@@ -1,5 +1,6 @@
 import logo from './logo.svg';
 import Login from './components/Login';
+import Register from './components/Register';
 import UserDashboard from './components/UserDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import Navigation from './components/Navigation';
@@ -12,12 +13,13 @@ import { generateResponse } from './services/geminiClient';
 function Shell() {
   const location = useLocation();
   const path = location.pathname || '';
-  const hideNav = path.startsWith('/login') || path.startsWith('/user') || path.startsWith('/admin');
+  const hideNav = path === '/' || path.startsWith('/login') || path.startsWith('/register') || path.startsWith('/user') || path.startsWith('/admin');
   return (
     <>
       {!hideNav && <Navigation />}
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/user" element={<UserDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/uploadPDF" element={<UploadPDF />} />

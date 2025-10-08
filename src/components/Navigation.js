@@ -38,7 +38,7 @@ export default function Navigation({ onLogout, rightContent }) {
     if (onLogout) {
       onLogout();
     } else {
-      navigate('/login');
+      navigate('/');
     }
   }
 

@@ -131,7 +131,6 @@ function Login() {
                   <input type="checkbox" name="remember" />
                   <span>Remember me</span>
                 </label>
-                <a className="link" href="#" onClick={(e) => e.preventDefault()}>Forgot password?</a>
               </div>
 
               <button
@@ -144,13 +143,8 @@ function Login() {
 
               <div className="divider" role="separator" aria-label="OR" />
 
-              <div className="social-row">
-                <button type="button" className="secondary-button" onClick={(e) => e.preventDefault()}>Continue with Google</button>
-                <button type="button" className="secondary-button" onClick={(e) => e.preventDefault()}>Continue with GitHub</button>
-              </div>
-
               <p className="aux-text">
-                New here? <a className="link" href="#" onClick={(e) => e.preventDefault()}>Create an account</a>
+                New here? <a className="link" href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Create an account</a>
               </p>
             </form>
           </div>
