@@ -22,6 +22,7 @@ function PdfViewer() {
   const [questionSet, setQuestionSet] = useState(null);
   const [answers, setAnswers] = useState({ mcq: {}, short: {}, long: {} });
   const [grading, setGrading] = useState({ loading: false, result: null, error: null });
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const listRef = useRef(null);
 
   const backendUrl = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -102,8 +103,10 @@ PDF_TEXT_START\n${snippet}\nPDF_TEXT_END`;
         parsed = JSON.parse(jsonText.slice(start, end + 1));
       }
       setQuestionSet(parsed);
-      // initialize answers state
+      // initialize answers state and reset submission status
       setAnswers({ mcq: {}, short: {}, long: {} });
+      setGrading({ loading: false, result: null, error: null });
+      setHasSubmitted(false);
       setActiveMobileTab('chat');
     } catch (err) {
       setQuestionSet({ error: 'Failed to generate questions. Please try again.' });
@@ -133,9 +136,9 @@ PDF_TEXT_START\n${snippet}\nPDF_TEXT_END`;
         questions: questionSet,
         answers,
         rubric: {
-          mcq: { correct: 1 },
-          short: { min: 1, max: 5 },
-          long: { min: 5, max: 15 },
+          mcq: { correct: 1 }, // 5 MCQ questions × 2 points = 10 points
+          short: { min: 1, max:5 }, // 2 Short questions × 5 points = 10 points  
+          long: { min: 5, max: 15 }, // 1 Long question × 10 points = 10 points
         },
       };
       const gradingPrompt = `You are a strict but fair grader. Using ONLY the provided PDF_TEXT and QUESTIONS, grade the ANSWERS.
@@ -154,9 +157,10 @@ Return STRICT JSON with this shape:
   }
 }
 Rules:
-- MCQ: +1 for each correct, 0 otherwise.
-- Short: integer 1..5; evaluate correctness, completeness, clarity.
-- Long: integer 5..15; evaluate depth, structure, evidence, alignment to PDF.
+- MCQ: +1 points for each correct answer, 0 otherwise (Total: 5 points for 5 questions).
+- Short: integer 1..5; evaluate correctness, completeness, clarity (Total: 10 points for 2 questions, 5 points each).
+- Long: integer 5..15; evaluate depth, structure, evidence, alignment to PDF (Total: 15 points for 1 question).
+- Total possible score: 30 points.
 - Provide actionable improvements.
 - Provide at least 3 concise strengths and 3 weaknesses.
 - Provide at least 3 YouTube recommendations with direct video URLs (no playlists), each with a short, descriptive title; ensure topics match weak areas.
@@ -174,6 +178,7 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
         parsed = JSON.parse(jsonText.slice(start, end + 1));
       }
       setGrading({ loading: false, result: parsed, error: null });
+      setHasSubmitted(true);
 
       // Compute percentage and post activity
       try {
@@ -221,17 +226,30 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
   return (
     <div className={`viewer-page ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
       <div className="viewer-header">
-        <div className="viewer-title">{name || 'PDF Preview'}</div>
+        <div className="viewer-header-left">
+          <div className="document-icon">📄</div>
+          <div className="viewer-title-section">
+            <h1 className="viewer-title">{name || 'PDF Document'}</h1>
+            <div className="viewer-subtitle">Interactive PDF Analysis</div>
+          </div>
+        </div>
         <div className="viewer-actions">
           <button
-            className="secondary"
+            className="theme-toggle"
             onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
             aria-label="Toggle theme"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            {theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          <a className="secondary" href={pdfUrl} download={name || 'document.pdf'}>Download</a>
-          <button className="secondary" onClick={() => navigate('/uploadPDF')}>Upload another</button>
+          <a className="download-btn" href={pdfUrl} download={name || 'document.pdf'} title="Download PDF">
+            <span>📥</span>
+            <span>Download</span>
+          </a>
+          <button className="upload-new-btn" onClick={() => navigate('/uploadPDF')} title="Upload another PDF">
+            <span>📤</span>
+            <span>Upload New</span>
+          </button>
         </div>
       </div>
 
@@ -240,11 +258,17 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
         <button
           className={`tab ${activeMobileTab === 'chat' ? 'active' : ''}`}
           onClick={() => setActiveMobileTab('chat')}
-        >Chat</button>
+        >
+          <span>💬</span>
+          <span>Questions & Chat</span>
+        </button>
         <button
           className={`tab ${activeMobileTab === 'pdf' ? 'active' : ''}`}
           onClick={() => setActiveMobileTab('pdf')}
-        >PDF</button>
+        >
+          <span>📖</span>
+          <span>PDF Viewer</span>
+        </button>
       </div>
 
       <div className="viewer-split">
@@ -252,19 +276,61 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
           <div className="chat-surface">
             {!questionSet && (
               <div className="question-cta">
-                <p className="hint">Generate questions from this PDF</p>
-                <button className="primary" onClick={generateQuestions} disabled={isGenerating}>
-                  {isGenerating ? 'Generating…' : 'Generate questions'}
+                <div className="cta-icon">🎯</div>
+                <h3 className="cta-title">Ready to test your knowledge?</h3>
+                <p className="cta-subtitle">Generate AI-powered questions from your PDF and get instant feedback</p>
+                <button className="generate-btn" onClick={generateQuestions} disabled={isGenerating}>
+                  {isGenerating ? (
+                    <>
+                      <div className="btn-spinner"></div>
+                      <span>Analyzing PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🚀</span>
+                      <span>Generate Questions</span>
+                    </>
+                  )}
                 </button>
+                <div className="cta-features">
+                  <div className="cta-feature">
+                    <span className="feature-icon">📝</span>
+                    <span>Multiple Choice Questions</span>
+                  </div>
+                  <div className="cta-feature">
+                    <span className="feature-icon">✍️</span>
+                    <span>Short Answer Questions</span>
+                  </div>
+                  <div className="cta-feature">
+                    <span className="feature-icon">📋</span>
+                    <span>Essay Questions</span>
+                  </div>
+                </div>
               </div>
             )}
 
             {questionSet && !questionSet.error && (
               <div className="question-list">
-                <div className="q-toolbar">
-                  <button className="secondary" onClick={() => { setGrading({ loading: false, result: null, error: null }); generateQuestions(); }} disabled={isGenerating}>
-                    {isGenerating ? 'Generating…' : 'Generate new questions'}
-                  </button>
+                <div className="questions-header">
+                  <div className="questions-title-section">
+                    <h2 className="questions-title">📚 Generated Questions</h2>
+                    <p className="questions-subtitle">Answer the questions below to test your understanding</p>
+                  </div>
+                  <div className="q-toolbar">
+                    <button className="regenerate-btn" onClick={() => { setGrading({ loading: false, result: null, error: null }); generateQuestions(); }} disabled={isGenerating}>
+                      {isGenerating ? (
+                        <>
+                          <div className="btn-spinner"></div>
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔄</span>
+                          <span>Generate New</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="q-section">
                   <h3>Multiple choice</h3>
@@ -279,6 +345,7 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
                               name={`mcq-${idx}`}
                               checked={answers.mcq[idx] === i}
                               onChange={() => onSelectMcq(idx, i)}
+                              disabled={hasSubmitted}
                             />
                             <span>{opt}</span>
                           </label>
@@ -299,6 +366,7 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
                         placeholder="Your answer"
                         value={answers.short[idx] || ''}
                         onChange={(e) => onShortChange(idx, e.target.value)}
+                        disabled={hasSubmitted}
                       />
                     </div>
                   ))}
@@ -316,6 +384,7 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
                           placeholder="Your answer"
                           value={answers.long[idx] || ''}
                           onChange={(e) => onLongChange(idx, e.target.value)}
+                          disabled={hasSubmitted}
                         />
                       </div>
                     ))
@@ -329,6 +398,7 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
                           placeholder="Your answer"
                           value={answers.long[0] || ''}
                           onChange={(e) => onLongChange(0, e.target.value)}
+                          disabled={hasSubmitted}
                         />
                       </div>
                     ) : null
@@ -336,9 +406,29 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
                 </div>
 
                 <div className="q-actions">
-                  <button className="primary" onClick={submitForGrading} disabled={grading.loading}>
-                    {grading.loading ? 'Grading…' : 'Submit for grading'}
-                  </button>
+                  {hasSubmitted ? (
+                    <div className="submitted-status">
+                      <div className="submitted-icon">✅</div>
+                      <div className="submitted-content">
+                        <h4 className="submitted-title">Quiz Submitted!</h4>
+                        <p className="submitted-message">Your answers have been graded. Generate new questions to take another quiz.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="submit-btn" onClick={submitForGrading} disabled={grading.loading}>
+                      {grading.loading ? (
+                        <>
+                          <div className="btn-spinner"></div>
+                          <span>Grading Your Answers...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>📊</span>
+                          <span>Submit for Grading</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -349,12 +439,47 @@ QUESTIONS_AND_ANSWERS_START\n${JSON.stringify(payload)}\nQUESTIONS_AND_ANSWERS_E
 
             {grading.result && (
               <div className="grading-results">
-                <h3>Results</h3>
-                <div className="scores">
-                  <div>MCQ: {grading.result.mcq?.total ?? 0}</div>
-                  <div>Short: {grading.result.short?.total ?? 0}</div>
-                  <div>Long: {grading.result.long?.total ?? 0}</div>
-                  <div>Overall: {grading.result.overall?.total ?? 0} / {grading.result.overall?.max ?? 0}</div>
+                <div className="results-header">
+                  <div className="results-icon">🎉</div>
+                  <h3 className="results-title">Your Results</h3>
+                  <div className="overall-score">
+                    <div className="score-circle">
+                      <div className="score-number">
+                        {Math.round(((grading.result.overall?.total ?? 0) / 30) * 100)}%
+                      </div>
+                      <div className="score-label">Overall Score</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="scores-grid">
+                  <div className="score-card mcq">
+                    <div className="score-icon">📝</div>
+                    <div className="score-info">
+                      <div className="score-type">Multiple Choice</div>
+                      <div className="score-value">{grading.result.mcq?.total ?? 0} / 5</div>
+                    </div>
+                  </div>
+                  <div className="score-card short">
+                    <div className="score-icon">✍️</div>
+                    <div className="score-info">
+                      <div className="score-type">Short Answer</div>
+                      <div className="score-value">{grading.result.short?.total ?? 0} / 10</div>
+                    </div>
+                  </div>
+                  <div className="score-card long">
+                    <div className="score-icon">📋</div>
+                    <div className="score-info">
+                      <div className="score-type">Long Answer</div>
+                      <div className="score-value">{grading.result.long?.total ?? 0} / 15</div>
+                    </div>
+                  </div>
+                  <div className="score-card total">
+                    <div className="score-icon">🏆</div>
+                    <div className="score-info">
+                      <div className="score-type">Total Score</div>
+                      <div className="score-value">{grading.result.overall?.total ?? 0} / 30</div>
+                    </div>
+                  </div>
                 </div>
                 {Array.isArray(grading.result.overall?.improvements) && grading.result.overall.improvements.length > 0 && (
                   <div className="improvements">

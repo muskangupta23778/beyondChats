@@ -1,5 +1,6 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import './Navigation.css';
 
 function getCookie(name) {
   const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
@@ -10,16 +11,21 @@ function clearCookie(name) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
 }
 
-export default function Navigation({ onLogout }) {
+export default function Navigation({ onLogout, rightContent }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   let userName = 'User';
+  let userEmail = '';
   let role = 'user';
   try {
     const userRaw = getCookie('bc_user');
     if (userRaw) {
       const userObj = JSON.parse(userRaw);
       userName = (userObj && (userObj.name || userObj.email)) || 'User';
+      userEmail = (userObj && userObj.email) || '';
       role = (userObj && userObj.role) ? String(userObj.role).toLowerCase() : 'user';
     }
   } catch (_) {}
@@ -36,65 +42,168 @@ export default function Navigation({ onLogout }) {
     }
   }
 
-  // Minimal inline styles for a cleaner, modern navbar
-  const styles = {
-    nav: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '10px 16px',
-      background: 'linear-gradient(90deg, #0ea5e9, #6366f1)',
-      color: '#fff',
-      position: 'sticky',
-      top: 0,
-      zIndex: 10,
-      boxShadow: '0 2px 10px rgba(0,0,0,0.15)'
-    },
-    brand: { fontWeight: 700, letterSpacing: '0.3px' },
-    menu: { display: 'flex', alignItems: 'center', gap: '12px' },
-    link: {
-      color: '#fff',
-      textDecoration: 'none',
-      padding: '8px 12px',
-      borderRadius: '999px',
-      transition: 'background 0.2s ease',
-      background: 'rgba(255,255,255,0.1)'
-    },
-    userChip: {
-      background: 'rgba(255,255,255,0.15)',
-      padding: '8px 12px',
-      borderRadius: '999px',
-      marginRight: '6px'
-    },
-    logout: {
-      border: 'none',
-      background: '#ef4444',
-      color: '#fff',
-      borderRadius: '999px',
-      padding: '8px 12px',
-      cursor: 'pointer'
-    }
-  };
+  function handleUserMenuToggle() {
+    setIsUserMenuOpen(!isUserMenuOpen);
+  }
+
+  function handleMenuToggle() {
+    setIsMenuOpen(!isMenuOpen);
+  }
+
+  const path = location.pathname || '';
+  const isActive = (pathname) => path === pathname;
 
   return (
-    <nav style={styles.nav}>
-      <div style={styles.brand}>BeyondChats</div>
-      <div style={styles.menu}>
-        {isAdmin ? (
-          <>
-            <Link style={styles.link} to="/admin">Dashboard</Link>
-          </>
-        ) : (
-          <>
-            <Link style={styles.link} to="/uploadPDF">Take Test</Link>
-            <Link style={styles.link} to="/user">Dashboard</Link>
-          </>
-        )}
+    <nav className="navigation">
+      <div className="nav-container">
+        {/* Brand */}
+        <div className="nav-brand">
+          <div className="brand-icon">🚀</div>
+          <div className="brand-text">
+            <span className="brand-title">BeyondChats</span>
+            <span className="brand-subtitle">AI Learning Platform</span>
+          </div>
+        </div>
+
+        {/* Desktop Navigation */}
+        <div className="nav-menu desktop-menu">
+          {isAdmin ? (
+            <Link 
+              className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+              to="/admin"
+            >
+              <span className="nav-icon">👑</span>
+              <span>Admin Dashboard</span>
+            </Link>
+          ) : (
+            <Link 
+              className={`nav-link ${isActive('/user') ? 'active' : ''}`}
+              to="/user"
+            >
+              <span className="nav-icon">📊</span>
+              <span>Dashboard</span>
+            </Link>
+          )}
+        </div>
+
+        {/* User Section */}
+        <div className="nav-user-section">
+          {rightContent}
+          
+          {/* User Menu */}
+          <div className="user-menu-container">
+            <button className="user-menu-trigger" onClick={handleUserMenuToggle}>
+              <div className="user-avatar">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div className="user-info">
+                <span className="user-name">{userName}</span>
+                <span className="user-role">{isAdmin ? 'Admin' : 'Student'}</span>
+              </div>
+              <div className={`dropdown-arrow ${isUserMenuOpen ? 'open' : ''}`}>▼</div>
+            </button>
+
+            {isUserMenuOpen && (
+              <div className="user-dropdown">
+                <div className="dropdown-header">
+                  <div className="dropdown-user-info">
+                    <div className="dropdown-avatar">
+                      {userName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="dropdown-details">
+                      <div className="dropdown-name">{userName}</div>
+                      <div className="dropdown-email">{userEmail}</div>
+                      <div className="dropdown-role">{isAdmin ? 'Administrator' : 'Student'}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-actions">
+                  <button className="dropdown-action" onClick={() => navigate('/user')}>
+                    <span className="action-icon">👤</span>
+                    <span>Profile</span>
+                  </button>
+                  <button className="dropdown-action" onClick={() => navigate('/uploadPDF')}>
+                    <span className="action-icon">📤</span>
+                    <span>Upload PDF</span>
+                  </button>
+                </div>
+                <div className="dropdown-divider"></div>
+                <button className="dropdown-logout" onClick={handleLogout}>
+                  <span className="action-icon">🚪</span>
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <button className="mobile-menu-toggle" onClick={handleMenuToggle}>
+            <span className={`hamburger ${isMenuOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+        </div>
       </div>
-      <div style={styles.menu}>
-        <span style={styles.userChip}>{userName}</span>
-        <button style={styles.logout} onClick={handleLogout}>Logout</button>
-      </div>
+
+      {/* Mobile Navigation */}
+      {isMenuOpen && (
+        <div className="mobile-menu">
+          <div className="mobile-menu-content">
+            {isAdmin ? (
+              <Link 
+                className={`mobile-nav-link ${isActive('/admin') ? 'active' : ''}`}
+                to="/admin"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="nav-icon">👑</span>
+                <span>Admin Dashboard</span>
+              </Link>
+            ) : (
+              <Link 
+                className={`mobile-nav-link ${isActive('/user') ? 'active' : ''}`}
+                to="/user"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="nav-icon">📊</span>
+                <span>Dashboard</span>
+              </Link>
+            )}
+            
+            <div className="mobile-user-section">
+              <div className="mobile-user-info">
+                <div className="mobile-user-avatar">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div className="mobile-user-details">
+                  <div className="mobile-user-name">{userName}</div>
+                  <div className="mobile-user-email">{userEmail}</div>
+                </div>
+              </div>
+              <button 
+                className="mobile-logout-btn" 
+                onClick={() => {
+                  handleLogout();
+                  setIsMenuOpen(false);
+                }}
+              >
+                <span className="action-icon">🚪</span>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay for mobile menu */}
+      {isMenuOpen && (
+        <div 
+          className="mobile-overlay" 
+          onClick={() => setIsMenuOpen(false)}
+        ></div>
+      )}
     </nav>
   );
 }

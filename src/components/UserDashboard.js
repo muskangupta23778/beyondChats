@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navigation from './Navigation';
+import './Dashboard.css';
 
 function getCookie(name) {
   const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
@@ -114,37 +115,133 @@ export default function UserDashboard() {
       .sort((a, b) => a.attempt - b.attempt);
   }, [activities]);
 
+  const stats = useMemo(() => {
+    const attempts = activities.length;
+    const last = attempts ? parsePercent(activities[0]?.result) : 0; // assuming API sorted desc by createdAt
+    const best = activities.reduce((m, a) => Math.max(m, parsePercent(a.result)), 0);
+    const avg = attempts ? Math.round(activities.reduce((s, a) => s + parsePercent(a.result), 0) / attempts) : 0;
+    return { attempts, last, best, avg };
+  }, [activities]);
+
   return (
-    <div>
+    <div className="dashboard-page">
       <Navigation onLogout={() => navigate('/login')} />
-      <main style={{ padding: '16px' }}>
-        <h2 style={{ margin: '8px 0 16px 0' }}>Your Performance</h2>
-        {loading && <div>Loading…</div>}
-        {error && <div style={{ color: '#ef4444' }}>{error}</div>}
+      <main className="dashboard-main">
+        <div className="dashboard-header">
+          <div className="dashboard-title-section">
+            <h1 className="dashboard-title">📊 Your Performance Dashboard</h1>
+            <p className="dashboard-subtitle">Track your learning progress and achievements</p>
+          </div>
+          <div className="dashboard-actions">
+            <button className="upload-btn" onClick={() => navigate('/uploadPDF')}>
+              <span>📤</span>
+              <span>Upload New PDF</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Stats cards */}
+        <div className="stats-grid">
+          <div className="stat-card attempts">
+            <div className="stat-icon">🎯</div>
+            <div className="stat-content">
+              <div className="stat-label">Total Attempts</div>
+              <div className="stat-value">{stats.attempts}</div>
+              <div className="stat-change">Keep practicing!</div>
+            </div>
+          </div>
+          <div className="stat-card best">
+            <div className="stat-icon">🏆</div>
+            <div className="stat-content">
+              <div className="stat-label">Best Score</div>
+              <div className="stat-value">{stats.best}%</div>
+              <div className="stat-change">Outstanding!</div>
+            </div>
+          </div>
+          <div className="stat-card average">
+            <div className="stat-icon">📈</div>
+            <div className="stat-content">
+              <div className="stat-label">Average Score</div>
+              <div className="stat-value">{stats.avg}%</div>
+              <div className="stat-change">Great consistency!</div>
+            </div>
+          </div>
+        </div>
+        {loading && (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p className="loading-text">Loading your performance data...</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="error-container">
+            <div className="error-icon">⚠️</div>
+            <div className="error-content">
+              <h3 className="error-title">Unable to load data</h3>
+              <p className="error-message">{error}</p>
+              <button className="retry-btn" onClick={() => window.location.reload()}>
+                <span>🔄</span>
+                <span>Try Again</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {!loading && !error && (
           <>
-            <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
-              <LineChart points={points} />
+            <div className="chart-section">
+              <div className="chart-header">
+                <h2 className="chart-title">📈 Performance Trend</h2>
+                <p className="chart-subtitle">Your progress over time</p>
+              </div>
+              <div className="chart-container">
+                <LineChart points={points} />
+              </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f3f4f6' }}>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #e5e7eb' }}>Attempt</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #e5e7eb' }}>Result</th>
-                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #e5e7eb' }}>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activities.map((a) => (
-                    <tr key={a._id}>
-                      <td style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{a.attempt}</td>
-                      <td style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{a.result}</td>
-                      <td style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{new Date(a.createdAt).toLocaleString()}</td>
+
+            <div className="activities-section">
+              <div className="activities-header">
+                <h2 className="activities-title">📋 Recent Activities</h2>
+                <p className="activities-subtitle">Your latest quiz attempts and results</p>
+              </div>
+              <div className="table-container">
+                <table className="activities-table">
+                  <thead>
+                    <tr>
+                      <th>Attempt #</th>
+                      <th>Score</th>
+                      <th>Date & Time</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {activities.map((a, idx) => (
+                      <tr key={a._id} className={idx % 2 === 0 ? 'even' : 'odd'}>
+                        <td>
+                          <div className="attempt-badge">#{a.attempt}</div>
+                        </td>
+                        <td>
+                          <div className={`score-badge ${parsePercent(a.result) >= 80 ? 'excellent' : parsePercent(a.result) >= 60 ? 'good' : 'needs-improvement'}`}>
+                            {a.result}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="date-info">
+                            <div className="date">{new Date(a.createdAt).toLocaleDateString()}</div>
+                            <div className="time">{new Date(a.createdAt).toLocaleTimeString()}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={`status-badge ${parsePercent(a.result) >= 80 ? 'completed' : 'in-progress'}`}>
+                            {parsePercent(a.result) >= 75 ? '✅ Excellent' : '📝 Average'}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </>
         )}
