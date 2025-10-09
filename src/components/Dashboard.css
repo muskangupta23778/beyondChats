@@ -564,9 +564,14 @@
   color: #166534;
 }
 
-.status-badge.in-progress {
+.status-badge.good {
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #92400e;
+}
+
+.status-badge.average {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
 }
 
 .date-info {

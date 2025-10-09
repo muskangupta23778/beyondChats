@@ -123,10 +123,12 @@ export default function Navigation({ onLogout, rightContent }) {
                     <span className="action-icon">👤</span>
                     <span>Profile</span>
                   </button>
-                  <button className="dropdown-action" onClick={() => navigate('/uploadPDF')}>
-                    <span className="action-icon">📤</span>
-                    <span>Upload PDF</span>
-                  </button>
+                  {!isAdmin && (
+                    <button className="dropdown-action" onClick={() => navigate('/uploadPDF')}>
+                      <span className="action-icon">📤</span>
+                      <span>Upload PDF</span>
+                    </button>
+                  )}
                 </div>
                 <div className="dropdown-divider"></div>
                 <button className="dropdown-logout" onClick={handleLogout}>

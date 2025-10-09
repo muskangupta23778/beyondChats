@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
@@ -17,6 +17,15 @@ function Login() {
     const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
   }
+  function clearCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+  }
+
+  // Ensure stale sessions are cleared when visiting the login page
+  useEffect(() => {
+    clearCookie('bc_token');
+    clearCookie('bc_user');
+  }, []);
 
   function togglePasswordVisibility() {
     setIsPasswordVisible((current) => !current);
@@ -37,8 +46,46 @@ function Login() {
       });
 
       if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Login failed');
+        // Try to read JSON error and map to a friendly message
+        let friendly = 'Login failed';
+        try {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const errJson = await response.json();
+            const backendMsg = String(errJson?.message || errJson?.error || '').toLowerCase();
+            if (backendMsg.includes('incorrect password') || backendMsg.includes('invalid credentials')) {
+              friendly = 'Incorrect email or password.';
+            } else if (backendMsg.includes('user not found')) {
+              friendly = 'No account found for this email address.';
+            } else if (backendMsg) {
+              friendly = errJson.message || errJson.error;
+            }
+          } else {
+            const text = await response.text().catch(() => '');
+            if (text) {
+              try {
+                const errJson = JSON.parse(text);
+                const backendMsg = String(errJson?.message || errJson?.error || '').toLowerCase();
+                if (backendMsg.includes('incorrect password') || backendMsg.includes('invalid credentials')) {
+                  friendly = 'Incorrect email or password.';
+                } else if (backendMsg.includes('user not found')) {
+                  friendly = 'No account found for this email address.';
+                } else if (errJson?.message || errJson?.error) {
+                  friendly = errJson.message || errJson.error;
+                } else {
+                  friendly = text;
+                }
+              } catch {
+                friendly = text || friendly;
+              }
+            }
+          }
+        } catch {
+          // keep default friendly message
+        }
+        // Clear any stale cookies on failed login
+        try { clearCookie('bc_token'); clearCookie('bc_user'); } catch {}
+        throw new Error(friendly);
       }
 
       const data = await response.json();
@@ -51,7 +98,7 @@ function Login() {
       const role = String((data.user && data.user.role) || '').toLowerCase();
       navigate(role === 'admin' ? '/admin' : '/user');
     } catch (err) {
-      setAuthError(err.message || 'Login failed');
+      setAuthError(err?.message || 'Login failed');
     } finally {
       setIsSubmitting(false);
     }

@@ -75,6 +75,21 @@ export default function UserDashboard() {
   const [activities, setActivities] = useState([]);
 
   const backendUrl = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001').replace(/\/$/, '');
+  let viewerEmail = '';
+  let currentUserEmail = '';
+  let role = 'user';
+  try {
+    const fromQuery = new URLSearchParams(location.search).get('email');
+    if (fromQuery) viewerEmail = fromQuery;
+    const userRaw = getCookie('bc_user');
+    if (userRaw) {
+      const userObj = JSON.parse(userRaw);
+      currentUserEmail = userObj?.email || '';
+      role = (userObj?.role ? String(userObj.role).toLowerCase() : 'user');
+    }
+  } catch (_) {}
+  const isAdmin = role === 'admin';
+  const isViewingOthersProfile = Boolean(viewerEmail && viewerEmail !== currentUserEmail);
 
   useEffect(() => {
     async function load() {
@@ -133,10 +148,12 @@ export default function UserDashboard() {
             <p className="dashboard-subtitle">Track your learning progress and achievements</p>
           </div>
           <div className="dashboard-actions">
-            <button className="upload-btn" onClick={() => navigate('/uploadPDF')}>
-              <span>📤</span>
-              <span>Take Test</span>
-            </button>
+            {!(isAdmin && isViewingOthersProfile) && (
+              <button className="upload-btn" onClick={() => navigate('/uploadPDF')}>
+                <span>📤</span>
+                <span>Take Test</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -212,7 +229,7 @@ export default function UserDashboard() {
                       <th>Attempt #</th>
                       <th>Score</th>
                       <th>Date & Time</th>
-                      <th>Status</th>
+                      {!(isAdmin && isViewingOthersProfile) && (<th>Status</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -229,14 +246,22 @@ export default function UserDashboard() {
                         <td>
                           <div className="date-info">
                             <div className="date">{new Date(a.createdAt).toLocaleDateString()}</div>
-                            <div className="time">{new Date(a.createdAt).toLocaleTimeString()}</div>
                           </div>
                         </td>
-                        <td>
-                          <div className={`status-badge ${parsePercent(a.result) >= 80 ? 'completed' : 'in-progress'}`}>
-                            {parsePercent(a.result) >= 75 ? '✅ Excellent' : '📝 Average'}
-                          </div>
-                        </td>
+                        {!(isAdmin && isViewingOthersProfile) && (
+                          <td>
+                            {(() => {
+                              const percent = parsePercent(a.result);
+                              const label = percent > 75 ? '✅ Excellent' : percent >= 45 ? '👍 Good' : '📝 Average';
+                              const cls = percent > 75 ? 'completed' : percent >= 45 ? 'good' : 'average';
+                              return (
+                                <div className={`status-badge ${cls}`}>
+                                  {label}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

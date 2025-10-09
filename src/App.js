@@ -19,9 +19,30 @@ function Shell() {
     const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
     return match ? decodeURIComponent(match[1]) : '';
   }
+  function getRole() {
+    try {
+      const raw = getCookie('bc_user');
+      if (!raw) return '';
+      const obj = JSON.parse(raw);
+      return String(obj?.role || '').toLowerCase();
+    } catch {
+      return '';
+    }
+  }
   function RequireAuth({ children }) {
     const token = getCookie('bc_token');
     if (!token) return <Navigate to="/" replace />;
+    return children;
+  }
+  function RequireRole({ allow, children }) {
+    const role = getRole();
+    const allowed = Array.isArray(allow) ? allow.map(String).map((r) => r.toLowerCase()) : [];
+    if (!allowed.includes(role)) {
+      // Redirect to the appropriate home based on role
+      if (role === 'admin') return <Navigate to="/admin" replace />;
+      if (role) return <Navigate to="/user" replace />;
+      return <Navigate to="/" replace />;
+    }
     return children;
   }
   return (
@@ -30,11 +51,11 @@ function Shell() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<RequireAuth><Register /></RequireAuth>} />
-        <Route path="/user" element={<RequireAuth><UserDashboard /></RequireAuth>} />
-        <Route path="/admin" element={<RequireAuth><AdminDashboard /></RequireAuth>} />
-        <Route path="/uploadPDF" element={<RequireAuth><UploadPDF /></RequireAuth>} />
-        <Route path="/viewPDF" element={<RequireAuth><PdfViewer /></RequireAuth>} />
-        <Route path="/chat" element={<RequireAuth><ChatWithPdf /></RequireAuth>} />
+        <Route path="/user" element={<RequireAuth><RequireRole allow={["user"]}><UserDashboard /></RequireRole></RequireAuth>} />
+        <Route path="/admin" element={<RequireAuth><RequireRole allow={["admin"]}><AdminDashboard /></RequireRole></RequireAuth>} />
+        <Route path="/uploadPDF" element={<RequireAuth><RequireRole allow={["user"]}><UploadPDF /></RequireRole></RequireAuth>} />
+        <Route path="/viewPDF" element={<RequireAuth><RequireRole allow={["user"]}><PdfViewer /></RequireRole></RequireAuth>} />
+        <Route path="/chat" element={<RequireAuth><RequireRole allow={["user"]}><ChatWithPdf /></RequireRole></RequireAuth>} />
       </Routes>
     </>
   );
