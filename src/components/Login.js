@@ -11,8 +11,8 @@ function Login() {
   const [authError, setAuthError] = useState('');
   const hasEmailError = emailAddress.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress);
 
-  const backendUrl = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001').replace(/\/$/, '');
-
+  const backendUrl = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
+  console.log("backendUrl", backendUrl);
   function setCookie(name, value, days) {
     const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
