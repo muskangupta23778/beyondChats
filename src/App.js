@@ -51,7 +51,7 @@ function Shell() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/user" element={<RequireAuth><RequireRole allow={["user"]}><UserDashboard /></RequireRole></RequireAuth>} />
+        <Route path="/user" element={<RequireAuth><RequireRole allow={["user","admin"]}><UserDashboard /></RequireRole></RequireAuth>} />
         <Route path="/admin" element={<RequireAuth><RequireRole allow={["admin"]}><AdminDashboard /></RequireRole></RequireAuth>} />
         <Route path="/uploadPDF" element={<RequireAuth><RequireRole allow={["user"]}><UploadPDF /></RequireRole></RequireAuth>} />
         <Route path="/viewPDF" element={<RequireAuth><RequireRole allow={["user"]}><PdfViewer /></RequireRole></RequireAuth>} />
